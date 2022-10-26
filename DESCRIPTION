@@ -1,13 +1,18 @@
-Package: SDTnUFC
+Package: unforcedChoice
 Type: Package
-Title: Signal Detection Models Unforced Choice
+Title: Signal Detection Models of Unforced Choice
 Version: 0.1.0
 Author: Victor H Cervantes
 Maintainer: Victor H Cervantes <victorhc@illinois.net>
 Description: 
-    Use four spaces when indenting paragraphs within the Description.
-Depends: cubature, mvtnorm, ggplot2, rlang
+    Signal Detection Models of Unforced Choice. Includes functions to compute predictions and to fit standard models of unforced choice
+    (aka Independent Observations Model, Watson et al., 1973, <doi:10.1037/h0034736>),
+    the Integration Model (Graham et al., 1987, <doi:10.1016/0022-2496(87)90021-6>), 
+    the Ensemble Model (Wixted et al., 2018, <doi:10.1016/j.cogpsych.2018.06.001>),
+    and the Dependent Observations Model (Akan et al., 2021, <doi:10.1037/xap0000340>). 
+    Additional models may be easily specified with a coefficients matrix (see examples).
+Imports: mvtnorm, ggplot2, rlang, dplyr, magrittr, tidyr, tidyselect
 License: GPL (>= 2)
 Encoding: UTF-8
 LazyData: true
-RoxygenNote: 7.1.1
+RoxygenNote: 7.2.1
