@@ -46,17 +46,15 @@ parsInData <- function (pars, fixed = NULL, data) {
     } else {
 
         if (!("criterion" %in% fixed)) {
-            ncriterion <- table(data[['criterion']])
 
-            if (length(pars) < length(ncriterion)) {
+            if (length(pars) < nrow(data)) {
                 stop("More values need replacing than available in pars. Check pars and fixed.")
             }
 
-            criterion  <- pars[1:length(ncriterion)]
-            valuescriterion <- rep(criterion, times = ncriterion)
+            criterion  <- pars[1:nrow(data)]
 
-            data[['criterion']] <- valuescriterion
-            pars <- pars[-seq(length(ncriterion))]
+            data[['criterion']] <- criterion
+            pars <- pars[-seq(length(criterion))]
         }
 
         if (!("mu" %in% fixed)) {
@@ -251,10 +249,10 @@ unforcedChoice_wls <- function (pars, data, fixed = NULL, rates = TRUE, ...) {
         data[, 'FAR']  <- data[, 'FAR'] / data[, 'nTA']
         data[, 'RRTP'] <- data[, 'RRTP'] / data[, 'nTP']
         data[, 'RRTA'] <- data[, 'RRTA'] / data[, 'nTA']
+        data[, "FIRTP"] <- 1 - data[, "HR"]  - data[, "RRTP"]
+        data[, "FIRTA"] <- 1 - data[, "FAR"] - data[, "RRTA"]
     }
 
-    data[, "FIRTP"] <- 1 - data[, "HR"]  - data[, "RRTP"]
-    data[, "FIRTA"] <- 1 - data[, "FAR"] - data[, "RRTA"]
 
     dataPred <- predictData(parsInData(pars = pars, fixed = fixed, data = data), ...)
 
@@ -331,10 +329,10 @@ unforcedChoice_lik <- function (pars, data, fixed = NULL, rates = TRUE, ...) {
         data[, 'FAR']  <- data[, 'FAR'] * data[, 'nTA']
         data[, 'RRTP'] <- data[, 'RRTP'] * data[, 'nTP']
         data[, 'RRTA'] <- data[, 'RRTA'] * data[, 'nTA']
+        data[, "FIRTP"] <- data[, "nTP"] - data[, "HR"]  - data[, "RRTP"]
+        data[, "FIRTA"] <- data[, "nTA"] - data[, "FAR"] - data[, "RRTA"]
     }
 
-    data[, "FIRTP"] <- data[, "nTP"] - data[, "HR"]  - data[, "RRTP"]
-    data[, "FIRTA"] <- data[, "nTA"] - data[, "FAR"] - data[, "RRTA"]
 
     dataPred <- predictData(parsInData(pars = pars, fixed = fixed, data = data), ...)
 
@@ -382,7 +380,7 @@ unforcedChoice_lik <- function (pars, data, fixed = NULL, rates = TRUE, ...) {
 #' @param fixed : Optional character vector. Name of parameter that will fixed at values in data data.frame. Can include any of
 #'                 'criterion', 'mu', 'sigmaT', 'rho_0', 'rho_1'.
 #' @param rates : Logical. Indicates whether columns HR, FAR, RRTP, and RRTA of data ought to be treated as proportions/rates (default) or as counts.
-#' @param objective : Character. Whether to estimate by maximum likelihood, 'maxLik' (default) or by weighed least squares 'wls'
+#' @param objective : Character. Whether to estimate by maximum likelihood, 'maxLik' or by weighed least squares 'wls' (default)
 #' @param nInit : Numeric. Number of different initial parameters to try for the optimization routine. Defaults to 5. Should be at least 1
 #' @param startingPars: Numeric vector. Starting values to use for (at least one of) the optimization runs.
 #' @param control : List. control parameters to be passed to optim. Default is list(trace = 3)). See ?optim for details.
@@ -451,7 +449,7 @@ unforcedChoice_lik <- function (pars, data, fixed = NULL, rates = TRUE, ...) {
 #'           #                                               fixed = c("r1=r0", "sigmaT"),
 #'           #                                               method.Ens = "mvnorm", objective = "wls"))
 #'
-unforcedChoice_Estimation <- function (data, fixed = NULL, rates = TRUE, objective = "maxLik",
+unforcedChoice_Estimation <- function (data, fixed = NULL, rates = TRUE, objective = "wls", cumulative = FALSE,
                                        nInit = 5, startingPars = NULL, control = list(trace = 3), ...) {
 
     parameterNames <- c("criterion", "mu", "sigmaT", "rho_0", "rho_1")
@@ -489,6 +487,13 @@ unforcedChoice_Estimation <- function (data, fixed = NULL, rates = TRUE, objecti
         stop("objective must be wither maxLik or wls")
     }
 
+    if (rates) {
+        data[, "FIRTP"] <- 1 - data[, "HR"]  - data[, "RRTP"]
+        data[, "FIRTA"] <- 1 - data[, "FAR"] - data[, "RRTA"]
+    } else {
+        data[, "FIRTP"] <- data[, "nTP"] - data[, "HR"]  - data[, "RRTP"]
+        data[, "FIRTA"] <- data[, "nTA"] - data[, "FAR"] - data[, "RRTA"]
+    }
 
     initialPars <- lowerLimits <- upperLimits <- numeric()
 
@@ -498,22 +503,20 @@ unforcedChoice_Estimation <- function (data, fixed = NULL, rates = TRUE, objecti
     } else {
         if (!("criterion" %in% fixed)) {
 
-            if (any(by(data[['model']], data[['criterion']], length) > 1)) {
-                warning("criterion should not be constrained to be equal for different models. Treating criterion values as different parameters for different models.")
-                data[['criterion']] <- paste(data[['criterion']], data[['model']], sep = ".")
-            }
+            criterion <- ifelse(data[['model']] == 'Ens',
+                                qnorm(
+                                    .5 +
+                                        (((data[['RRTA']])^(1/data[['nSize']])) / data[['nSize']])
+                                ),
+                                qnorm((data[['RRTA']])^(1/data[['nSize']]))
+            )
 
-            criterion <- qnorm((data[['RRTA']])^(1/data[['nSize']]))
             criterion[criterion == -Inf] <- -5
             criterion[criterion ==  Inf] <-  5
-            criterion <- ifelse(data[['model']] == 'Ens' & criterion < 0, 0, criterion)
             lowerLimits <- c(lowerLimits, as.numeric(ifelse(data[['model']] == 'Ens', 0, -7)))
 
-            criterion <- by(criterion, data[['criterion']], mean, simplify = TRUE)
-            lowerLimits <- by(lowerLimits, data[['criterion']], mean, simplify = TRUE)
-
-            names(criterion) <- paste("criterion", unique(data[['criterion']]), sep = ".")
-            initialPars <- c(initialPars, criterion)
+            names(criterion) <- paste("criterion", data[['criterion']], sep = ".")
+            initialPars <- cbind(initialPars, matrix(rep(criterion, 5), ncol = 5))
 
             upperLimits <- c(upperLimits, rep(7, length(criterion)))
         }
@@ -531,7 +534,12 @@ unforcedChoice_Estimation <- function (data, fixed = NULL, rates = TRUE, objecti
 
             means <- by(means, data[['mu']], mean, simplify = TRUE)
             names(means) <- paste("mu", unique(data[['mu']]), sep = ".")
-            initialPars <- c(initialPars, means)
+            initialPars <- rbind(initialPars, cbind(means,
+                                                    means, # * sqrt(1 - .2),
+                                                    means, # * sqrt(1 - .4),
+                                                    means, # * sqrt(1 - .6),
+                                                    means  # * sqrt(1 - .8)
+            ))
 
             lowerLimits <- c(lowerLimits, rep(0, length(means)))
             upperLimits <- c(upperLimits, rep(5, length(means)))
@@ -540,17 +548,22 @@ unforcedChoice_Estimation <- function (data, fixed = NULL, rates = TRUE, objecti
         if (!("sigmaT" %in% fixed)) {
             sigmas <- rep(1, length(unique(data[['sigmaT']])))
             names(sigmas) <- paste("sigmaT", unique(data[['sigmaT']]), sep = ".")
-            initialPars <- c(initialPars, sigmas)
+            initialPars <- rbind(initialPars, matrix(rep(sigmas, 5), ncol = 5))
 
-            lowerLimits <- c(lowerLimits, rep(1, length(sigmas)))
+            lowerLimits <- c(lowerLimits, rep(.8, length(sigmas)))
             upperLimits <- c(upperLimits, rep(10, length(sigmas)))
         }
 
         if (!("rho_0" %in% fixed)) {
-            rho0s <- ifelse(data[['model']] == 'IO', 0, .2)
+            rho0s <- ifelse(data[['model']] == 'IO', 0, 1)
             rho0s <- by(rho0s, data[['rho_0']], mean, simplify = TRUE)
             names(rho0s) <- paste("rho_0", unique(data[['rho_0']]), sep = ".")
-            initialPars <- c(initialPars, rho0s)
+            initialPars <- rbind(initialPars, cbind(.0 * rho0s,
+                                                    .2 * rho0s,
+                                                    .4 * rho0s,
+                                                    .6 * rho0s,
+                                                    .8 * rho0s
+            ))
 
             lowerLimits <- c(lowerLimits, rep(0, length(rho0s)))
             upperLimits <- c(upperLimits, rep(1, length(rho0s)))
@@ -567,10 +580,15 @@ unforcedChoice_Estimation <- function (data, fixed = NULL, rates = TRUE, objecti
 
         } else {
             if (!("rho_1" %in% fixed)) {
-                rho1s <- ifelse(data[['model']] == 'IO', 0, .15)
+                rho1s <- ifelse(data[['model']] == 'IO', 0, 1)
                 rho1s <- by(rho1s, data[['rho_1']], mean, simplify = TRUE)
                 names(rho1s) <- paste("rho_1", unique(data[['rho_1']]), sep = ".")
-                initialPars <- c(initialPars, rho1s)
+                initialPars <- rbind(initialPars, cbind(.0 * rho1s,
+                                                        .2 * rho1s,
+                                                        .4 * rho1s,
+                                                        .6 * rho1s,
+                                                        .8 * rho1s
+                ))
 
                 lowerLimits <- c(lowerLimits, rep(0, length(rho1s)))
                 upperLimits <- c(upperLimits, rep(1, length(rho1s)))
@@ -581,18 +599,14 @@ unforcedChoice_Estimation <- function (data, fixed = NULL, rates = TRUE, objecti
 
     }
 
-    if (nInit > 1) {
+    if (nInit > 0) {
         initialPars <- cbind(initialPars,
-                             matrix(runif((nInit - 1) * length(upperLimits),
+                             matrix(runif((nInit) * length(upperLimits),
                                           min = lowerLimits,
                                           max = upperLimits
-                             ), ncol = nInit - 1)
+                             ), ncol = nInit)
         )
-    } else {
-        initialPars <- matrix(runif(length(upperLimits),
-                                    min = lowerLimits,
-                                    max = upperLimits
-        ), ncol = 1)
+        nInit <- ncol(initialPars) + nInit
     }
 
     if (!is.null(startingPars)) {
@@ -615,7 +629,7 @@ unforcedChoice_Estimation <- function (data, fixed = NULL, rates = TRUE, objecti
               ... = ...)
     }
 
-    for (ii in seq(nInit)) {
+    for (ii in seq(ncol(initialPars))) {
         optimized[[ii]] <- findOptim(par = initialPars[, ii],
                                      fn = objFun,
                                      data = data,

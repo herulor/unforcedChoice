@@ -109,7 +109,7 @@ Custom_RRTA <- function (criterion = .25, rho_0 = 0,
                          nSize = 4, cMatrix, ...) {
 
     if (nSize == 1) {
-        stop("Customemble model does not apply to set size 1.")
+        stop("Custom model does not apply to set size 1.")
     } else if (nSize > 1) {
         probability <- Custom_RR(criterion = criterion, mu = 0, sigmaT = 1, rho_0 = rho_0, rho_1 = rho_0,
                                  nSize = nSize, cMatrix = cMatrix)
@@ -145,7 +145,7 @@ Custom_RRTP <- function (criterion = .25, mu = 1, sigmaT = 1, rho_0 = 0, rho_1 =
                          nSize = 4, cMatrix, ...) {
 
     if (nSize == 1) {
-        stop("Customemble model does not apply to set size 1.")
+        stop("Custom model does not apply to set size 1.")
     } else if (nSize > 1) {
         probability <- Custom_RR(criterion = criterion, mu = mu, sigmaT = sigmaT,
                                  rho_0 = rho_0, rho_1 = rho_1,
@@ -268,7 +268,7 @@ Custom_HR <- function (criterion = .25, mu = 1, sigmaT = 1, rho_0 = 0, rho_1 = 0
                        nSize = 4, cMatrix, ...) {
 
     if (nSize == 1) {
-        stop("Customemble model does not apply to set size 1.")
+        stop("Custom model does not apply to set size 1.")
     } else if (nSize > 1) {
         probability <- Custom_ID(criterion = criterion, mu = mu, sigmaT = sigmaT,
                                  rho_0 = rho_0, rho_1 = rho_1,
@@ -303,7 +303,7 @@ Custom_FAR <- function (criterion = .25, rho_0 = 0,
                         nSize = 4, cMatrix, ...) {
 
     if (nSize == 1) {
-        stop("Customemble model does not apply to set size 1.")
+        stop("Custom model does not apply to set size 1.")
     } else if (nSize > 1) {
         probability <- Custom_ID(criterion = criterion, mu = 0, sigmaT = 1, rho_0 = rho_0, rho_1 = rho_0,
                                  nSize = nSize, cMatrix = cMatrix)

@@ -420,7 +420,7 @@ plot_ROC <- function(data = NULL, ratesTable = NULL, type = "TOC",
         }
 
         n <- rho <- sigma <- NULL
-        subtitle <- expr(paste(!!model, " Model.",
+        subtitle <- expr(paste(!!model, " Model. ",
                                n, " = ", !!nSize, ", ",
                                mu, " = ", !!round(mu, 3), ", ",
                                sigma[T], " = ", !!round(sigmaT, 3), ", ",

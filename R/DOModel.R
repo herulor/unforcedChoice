@@ -88,7 +88,7 @@ DO_RRTP <- function (criterion = .25, mu = 1, sigmaT = 1, rho_0 = 0, rho_1 = 0,
 
     # Parameter verification
     if (rho_0 < (rho_1^2)) {
-        rho_1 <- sign(rho_1) * sqrt(rho_0)
+        rho_1 <- sign(rho_1) * sqrt(rho_0) * .9999
         warning("rho_0 must be at least as large as rho_1^2. Changing rho_1 to ", rho_1)
     }
     if (rho_0 == 0 && rho_1 == 0) {
@@ -169,7 +169,7 @@ DO_HR <- function (criterion = .25, mu = 1, sigmaT = 1, rho_0 = 0, rho_1 = 0,
 
     # Parameter verification
     if (rho_0 < (rho_1^2)) {
-        rho_1 <- sign(rho_1) * sqrt(rho_0)
+        rho_1 <- sign(rho_1) * sqrt(rho_0) * .9999
         warning("rho_0 must be at least as large as rho_1^2. Changing rho_1 to ", rho_1)
     }
     if (rho_0 == 0 && rho_1 == 0) {
